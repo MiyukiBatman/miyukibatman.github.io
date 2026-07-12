@@ -496,41 +496,75 @@
         .my-league-name { font-size: 1.4em; font-weight: 900; color: var(--duo-blue); line-height: 1.2; }
         .my-league-streak { font-size: .85em; font-weight: 700; color: #777; margin-top: 2px; }
 
-        /* ═══ Semaine inactive : bannière diagonale ═══ */
-        .inactive-banner {
-            position: absolute; inset: 0;
+        /* ═══ Photo de la semaine (bouton vertical + modal) ═══ */
+        .week-card { position: relative; padding-right: 46px !important; }
+        .photo-side-btn {
+            position: absolute; top: 0; right: 0; bottom: 0;
+            width: 38px; border: none; cursor: pointer;
+            border-radius: 0 16px 16px 0;
+            background: linear-gradient(180deg, #e8f7dc, #d8f0c5);
+            border-left: 2px solid var(--border-color);
             display: flex; align-items: center; justify-content: center;
-            pointer-events: none; z-index: 5;
-            background: repeating-linear-gradient(
-                -45deg,
-                rgba(120,120,120,.06) 0px,
-                rgba(120,120,120,.06) 14px,
-                rgba(120,120,120,.13) 14px,
-                rgba(120,120,120,.13) 28px
-            );
-            border-radius: 8px;
-            animation: fadeIn .3s ease-out;
+            transition: .15s; padding: 0;
         }
-        .inactive-banner span {
-            transform: rotate(-18deg);
-            font-weight: 900; font-size: 1.6em; letter-spacing: .25em;
-            color: #9aa0a6; text-transform: uppercase;
-            border: 3px dashed #9aa0a6; border-radius: 12px;
-            padding: 6px 22px;
-            background: rgba(247,247,247,.82);
-            box-shadow: 0 4px 18px rgba(0,0,0,.12);
+        .photo-side-btn span {
+            writing-mode: vertical-rl; transform: rotate(180deg);
+            font-weight: 800; font-size: .78em; letter-spacing: .08em;
+            color: var(--duo-green-dark); white-space: nowrap;
+            font-family: inherit;
         }
-        .btn-inactive {
-            margin-top: 8px;
-            background: var(--bg-color); color: #777;
+        .photo-side-btn:hover { filter: brightness(1.04); width: 42px; }
+        .photo-side-btn:active { filter: brightness(.96); }
+        .photo-side-btn.has-photo {
+            background: linear-gradient(180deg, #d9f0ff, #c2e6fc);
+        }
+        .photo-side-btn.has-photo span { color: #1795cc; }
+        .photo-side-btn.no-photo {
+            background: linear-gradient(180deg, #efefef, #e2e2e2);
+        }
+        .photo-side-btn.no-photo span { color: #999; }
+
+        .photo-view {
+            width: 100%; border-radius: 12px;
             border: 2px solid var(--border-color);
-            box-shadow: 0 4px 0 var(--border-color);
+            display: block;
         }
-        .btn-inactive.on {
-            background: linear-gradient(160deg, #b8bdc4, #9aa0a6);
-            color: #fff; border-color: #7d838a;
-            box-shadow: 0 4px 0 #7d838a;
+        .photo-empty {
+            padding: 22px; text-align: center; color: #999;
+            font-weight: 600; font-size: .9em;
+            border: 2px dashed var(--border-color); border-radius: 12px;
+            margin-bottom: 12px;
         }
+        .photo-none-check {
+            display: flex; align-items: center; gap: 10px;
+            margin-top: 14px; padding: 12px;
+            border: 2px solid var(--border-color); border-radius: 12px;
+            cursor: pointer; font-weight: 700; font-size: .9em; color: #777;
+            background: var(--bg-color);
+        }
+        .photo-none-check input { width: 20px; height: 20px; accent-color: var(--duo-green); cursor: pointer; }
+
+        /* ═══ Choix du début de semaine + inactif par jour ═══ */
+        .week-start-row {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 10px; font-weight: 700; font-size: .85em; color: #777;
+            flex-wrap: wrap;
+        }
+        .week-start-row input[type="date"] {
+            width: auto; flex: 1; min-width: 140px;
+            padding: 8px 10px; font-size: 14px;
+        }
+        .inactive-hint {
+            font-size: .72em; color: #999; font-weight: 600;
+            text-align: center; margin: 8px 0 2px; line-height: 1.4;
+        }
+        .inactive-hint b { color: #9aa0a6; }
+
+        /* ═══ (ancien) Semaine inactive ═══ */
+        
+        
+        
+        
 
         /* — Scrollbar discrète — */
         ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -610,6 +644,19 @@
         </div>
     </div>
 
+    <!-- MODAL PHOTO SEMAINE -->
+    <div class="stats-overlay" id="photoOverlay" onclick="if(event.target===this)closePhotoModal()">
+        <div class="stats-modal">
+            <div class="stats-modal-head">
+                <h2 style="margin:0;">📷 Photo de la semaine</h2>
+                <button class="stats-close" onclick="closePhotoModal()">✕</button>
+            </div>
+            <p style="margin:0 0 12px; font-size:.85em; color:#777; font-weight:600;" id="photoModalSub"></p>
+            <div id="photoModalContent"></div>
+            <input type="file" id="photoFile" accept="image/*" style="display:none;" onchange="handlePhotoFile(event)">
+        </div>
+    </div>
+
     <!-- MODAL STATS GLOBAL -->
     <div class="stats-overlay" id="statsOverlay" onclick="if(event.target===this)closeStats()">
         <div class="stats-modal">
@@ -630,11 +677,16 @@
         </div>
 
         <div id="page-suivi" class="page active">
-            <div class="card">
+            <div class="card week-card">
+                <button class="photo-side-btn" id="photoBtn" onclick="openPhotoModal()"><span id="photoBtnTxt">📷 Insérer une photo</span></button>
                 <div class="week-nav">
                     <button onclick="changeWeek(-1)">◀</button>
                     <span id="weekLabel">Du ... au ...</span>
                     <button onclick="changeWeek(1)">▶</button>
+                </div>
+                <div class="week-start-row">
+                    <label for="weekStartInput">📅 Début de ma semaine :</label>
+                    <input type="date" id="weekStartInput" onchange="setWeekStart(this.value)">
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; font-weight:bold; margin-bottom: 10px; gap:10px; flex-wrap:wrap;">
                     <span>XP du cycle : <span id="weeklySummary" style="color:var(--duo-green);">0</span></span>
@@ -643,10 +695,9 @@
                 
                 <div style="height: 150px; position: relative;">
                     <canvas id="xpChart"></canvas>
-                    <div class="inactive-banner" id="inactiveBanner" style="display:none;"><span>INACTIF</span></div>
                 </div>
+                <div class="inactive-hint">💤 Touche un jour à 0 XP sur le graphique pour le marquer <b>inactif</b> (re-touche pour annuler)</div>
                 <button class="btn-main btn-compare" id="compareBtn" onclick="toggleCompare()">Comparer </button>
-                <button class="btn-main btn-inactive" id="inactiveBtn" onclick="toggleInactiveWeek()">💤 Marquer la semaine inactive</button>
             </div>
 
             <!-- GRAPHIQUE MENSUEL -->
@@ -729,19 +780,48 @@
             return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dateStr;
         }
 
-        // Semaines inactives (clé = date du 1er jour de la semaine, par compte)
-        let inactiveWeeks = JSON.parse(localStorage.getItem('weeklingo_inactive')) || { 1: [], 2: [], 3: [] };
-        [1,2,3].forEach(a => { if (!inactiveWeeks[a]) inactiveWeeks[a] = []; });
+        // Jours inactifs (par compte, par date)
+        let inactiveDays = JSON.parse(localStorage.getItem('weeklingo_inactive_days')) || null;
+        if (!inactiveDays) {
+            inactiveDays = { 1: [], 2: [], 3: [] };
+            // Migration : anciennes semaines inactives -> 7 jours inactifs chacune
+            const oldWeeks = JSON.parse(localStorage.getItem('weeklingo_inactive')) || {};
+            [1,2,3].forEach(a => {
+                (oldWeeks[a] || []).forEach(weekKey => {
+                    const start = new Date(weekKey + 'T12:00:00');
+                    for (let i = 0; i < 7; i++) {
+                        const d = new Date(start);
+                        d.setDate(start.getDate() + i);
+                        inactiveDays[a].push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+                    }
+                });
+            });
+            localStorage.setItem('weeklingo_inactive_days', JSON.stringify(inactiveDays));
+        }
+        [1,2,3].forEach(a => { if (!inactiveDays[a]) inactiveDays[a] = []; });
 
-        let currentWeekKey = ''; // date de début de la semaine affichée
+        let currentWeekKey = '';   // date de début de la semaine affichée
+        let currentWeekDates = []; // les 7 dates affichées
+        let currentInactiveFlags = [false,false,false,false,false,false,false];
 
-        function toggleInactiveWeek() {
-            if (!currentWeekKey) return;
-            const list = inactiveWeeks[currentAccount];
-            const idx = list.indexOf(currentWeekKey);
-            if (idx === -1) list.push(currentWeekKey);
+        function toggleInactiveDay(dateStr) {
+            const list = inactiveDays[currentAccount];
+            const idx = list.indexOf(dateStr);
+            if (idx === -1) list.push(dateStr);
             else list.splice(idx, 1);
-            localStorage.setItem('weeklingo_inactive', JSON.stringify(inactiveWeeks));
+            localStorage.setItem('weeklingo_inactive_days', JSON.stringify(inactiveDays));
+            updateChartAndSummary();
+        }
+
+        // Début de semaine personnalisé par compte (date libre, car Duolingo varie)
+        let weekStartDb = JSON.parse(localStorage.getItem('weeklingo_weekstart')) || { 1: '', 2: '', 3: '' };
+        [1,2,3].forEach(a => { if (weekStartDb[a] === undefined) weekStartDb[a] = ''; });
+
+        function setWeekStart(dateStr) {
+            if (!dateStr) return;
+            weekStartDb[currentAccount] = dateStr;
+            localStorage.setItem('weeklingo_weekstart', JSON.stringify(weekStartDb));
+            weekOffset = 0;
             updateChartAndSummary();
         }
         
@@ -864,11 +944,24 @@
 
         function updateChartAndSummary() {
             const now = new Date();
-            // Début de semaine selon le compte : Enzo = samedi (6), les autres = vendredi (5)
-            const weekStartDay = (currentAccount === 3) ? 6 : 5;
-            const daysSinceStart = (now.getDay() - weekStartDay + 7) % 7;
-            const currentFriday = new Date(now);
-            currentFriday.setDate(now.getDate() - daysSinceStart + (weekOffset * 7));
+            let currentFriday;
+            const anchor = weekStartDb[currentAccount];
+            if (anchor) {
+                // Semaine personnalisée : ancrée sur la date choisie, cycles de 7 jours
+                const anchorDate = new Date(anchor + 'T12:00:00');
+                const msDay = 24 * 3600 * 1000;
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+                const daysSinceAnchor = Math.floor((today - anchorDate) / msDay);
+                const cycles = Math.floor(daysSinceAnchor / 7);
+                currentFriday = new Date(anchorDate);
+                currentFriday.setDate(anchorDate.getDate() + (cycles + weekOffset) * 7);
+            } else {
+                // Défaut : Enzo = samedi (6), les autres = vendredi (5)
+                const weekStartDay = (currentAccount === 3) ? 6 : 5;
+                const daysSinceStart = (now.getDay() - weekStartDay + 7) % 7;
+                currentFriday = new Date(now);
+                currentFriday.setDate(now.getDate() - daysSinceStart + (weekOffset * 7));
+            }
 
             const chartLabels = [];
             const datesDb = [];
@@ -885,13 +978,15 @@
 
             document.getElementById('weekLabel').innerText = `Du ${chartLabels[0]} au ${chartLabels[6]}`;
 
-            // Clé de la semaine affichée (1er jour) + état inactif
+            // Clé de la semaine affichée (1er jour)
             currentWeekKey = datesDb[0];
-            const isInactive = inactiveWeeks[currentAccount].includes(currentWeekKey);
-            document.getElementById('inactiveBanner').style.display = (isInactive && !isComparing) ? 'flex' : 'none';
-            const inBtn = document.getElementById('inactiveBtn');
-            inBtn.classList.toggle('on', isInactive);
-            inBtn.innerText = isInactive ? '💤 Semaine inactive ✓ (annuler)' : '💤 Marquer la semaine inactive';
+            currentWeekDates = datesDb.slice();
+            document.getElementById('weekStartInput').value = currentWeekKey;
+            updatePhotoBtn();
+
+            // Jours inactifs de la semaine affichée (compte actif)
+            const inactiveFlags = datesDb.map(d => inactiveDays[currentAccount].includes(d));
+            currentInactiveFlags = inactiveFlags;
 
             const dataAcc1 = getChartDataForAccount(1, datesDb);
             const dataAcc2 = getChartDataForAccount(2, datesDb);
@@ -910,6 +1005,9 @@
             const ctx = document.getElementById('xpChart').getContext('2d');
             let datasetsConfig = [];
 
+            // Un jour inactif coupe la courbe (null) — hors mode comparaison
+            const cutData = (data) => data.map((v, i) => inactiveFlags[i] && !isComparing ? null : v);
+
             if (isComparing) {
                 datasetsConfig = [1, 2, 3].map(acc => ({
                     label: ACCOUNT_NAMES[acc],
@@ -920,13 +1018,14 @@
                     borderWidth: 3,
                     pointRadius: 6,
                     pointBackgroundColor: '#ffffff',
-                    pointBorderWidth: 2
+                    pointBorderWidth: 2,
+                    spanGaps: false
                 }));
             } else {
                 // Retour au vert Duolingo par défaut pour la vue unique
                 datasetsConfig = [{
                     label: 'XP Gagné',
-                    data: dataByAcc[currentAccount],
+                    data: cutData(dataByAcc[currentAccount]),
                     borderColor: '#58cc02', 
                     backgroundColor: '#58cc02', 
                     borderWidth: 3,
@@ -935,9 +1034,39 @@
                     pointBackgroundColor: '#ffffff',
                     pointBorderColor: '#58cc02',
                     pointBorderWidth: 2,
-                    tension: 0.3
+                    tension: 0.3,
+                    spanGaps: false
                 }];
             }
+
+            // Plugin : écrit "INACTIF" verticalement au-dessus des jours inactifs
+            const inactivePlugin = {
+                id: 'inactiveDaysPlugin',
+                afterDatasetsDraw(chart) {
+                    if (isComparing) return;
+                    const { ctx: c, chartArea, scales } = chart;
+                    if (!chartArea) return;
+                    currentInactiveFlags.forEach((flag, i) => {
+                        if (!flag) return;
+                        const x = scales.x.getPixelForValue(i);
+                        // bande grisée verticale
+                        const half = Math.min(18, (chartArea.right - chartArea.left) / 16);
+                        c.save();
+                        c.fillStyle = 'rgba(120,120,120,.08)';
+                        c.fillRect(x - half, chartArea.top, half * 2, chartArea.bottom - chartArea.top);
+                        // texte vertical INACTIF
+                        c.translate(x, (chartArea.top + chartArea.bottom) / 2);
+                        c.rotate(-Math.PI / 2);
+                        c.font = '800 11px Nunito, sans-serif';
+                        c.fillStyle = '#9aa0a6';
+                        c.textAlign = 'center';
+                        c.textBaseline = 'middle';
+                        c.letterSpacing = '2px';
+                        c.fillText('INACTIF', 0, 0);
+                        c.restore();
+                    });
+                }
+            };
 
             if (xpChartInstance) {
                 xpChartInstance.data.labels = chartLabels;
@@ -947,7 +1076,22 @@
                 xpChartInstance = new Chart(ctx, {
                     type: 'line',
                     data: { labels: chartLabels, datasets: datasetsConfig },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: isComparing } }, scales: { y: { beginAtZero: true } } }
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: isComparing } },
+                        scales: { y: { beginAtZero: true } },
+                        onClick: (evt, elements, chart) => {
+                            if (isComparing) return;
+                            const x = chart.scales.x;
+                            const idx = Math.round(x.getValueForPixel(evt.native.offsetX !== undefined ? evt.native.offsetX : evt.x));
+                            if (idx < 0 || idx > 6 || !currentWeekDates[idx]) return;
+                            // Seulement les jours à 0 XP (ou déjà inactifs, pour pouvoir annuler)
+                            const dayXp = getChartDataForAccount(currentAccount, [currentWeekDates[idx]])[0];
+                            const already = inactiveDays[currentAccount].includes(currentWeekDates[idx]);
+                            if (dayXp === 0 || already) toggleInactiveDay(currentWeekDates[idx]);
+                        }
+                    },
+                    plugins: [inactivePlugin]
                 });
             }
         }
@@ -1176,7 +1320,9 @@
                 records: recordsDb,
                 league: leagueDb,
                 leagueLastWeek: localStorage.getItem('weeklingo_league_lastweek') || '',
-                inactiveWeeks: inactiveWeeks
+                inactiveDays: inactiveDays,
+                weekStart: weekStartDb,
+                photos: photosDb
             };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
             const a = document.createElement('a');
@@ -1218,10 +1364,20 @@
                     if (payload.leagueLastWeek) {
                         localStorage.setItem('weeklingo_league_lastweek', payload.leagueLastWeek);
                     }
-                    if (payload.inactiveWeeks) {
-                        inactiveWeeks = payload.inactiveWeeks;
-                        [1,2,3].forEach(a => { if (!inactiveWeeks[a]) inactiveWeeks[a] = []; });
-                        localStorage.setItem('weeklingo_inactive', JSON.stringify(inactiveWeeks));
+                    if (payload.inactiveDays) {
+                        inactiveDays = payload.inactiveDays;
+                        [1,2,3].forEach(a => { if (!inactiveDays[a]) inactiveDays[a] = []; });
+                        localStorage.setItem('weeklingo_inactive_days', JSON.stringify(inactiveDays));
+                    }
+                    if (payload.weekStart) {
+                        weekStartDb = payload.weekStart;
+                        [1,2,3].forEach(a => { if (weekStartDb[a] === undefined) weekStartDb[a] = ''; });
+                        localStorage.setItem('weeklingo_weekstart', JSON.stringify(weekStartDb));
+                    }
+                    if (payload.photos) {
+                        photosDb = payload.photos;
+                        [1,2,3].forEach(a => { if (!photosDb[a]) photosDb[a] = {}; });
+                        savePhotosDb();
                     }
 
                     updateView();
@@ -1248,6 +1404,112 @@
             };
             localStorage.setItem('weeklingo_records', JSON.stringify(recordsDb));
             renderStats();
+        }
+
+        // --- PHOTOS DE SEMAINE (stats envoyées par Duolingo) ---
+        // Structure : { compte: { cléSemaine: dataURL | 'none' } }
+        let photosDb = JSON.parse(localStorage.getItem('weeklingo_photos')) || { 1: {}, 2: {}, 3: {} };
+        [1,2,3].forEach(a => { if (!photosDb[a]) photosDb[a] = {}; });
+
+        function savePhotosDb() {
+            try {
+                localStorage.setItem('weeklingo_photos', JSON.stringify(photosDb));
+            } catch (e) {
+                alert("⚠️ Stockage plein ! Supprime d'anciennes photos pour libérer de la place.");
+            }
+        }
+
+        function getPhotoState() {
+            const v = photosDb[currentAccount][currentWeekKey];
+            if (v === 'none') return 'none';
+            if (v) return 'photo';
+            return 'empty';
+        }
+
+        function updatePhotoBtn() {
+            const btn = document.getElementById('photoBtn');
+            const txt = document.getElementById('photoBtnTxt');
+            const state = getPhotoState();
+            btn.classList.remove('has-photo', 'no-photo');
+            if (state === 'photo') { txt.innerText = '🖼️ Voir la photo'; btn.classList.add('has-photo'); }
+            else if (state === 'none') { txt.innerText = '🚫 Pas de photo'; btn.classList.add('no-photo'); }
+            else { txt.innerText = '📷 Insérer une photo'; }
+        }
+
+        function openPhotoModal() {
+            renderPhotoModal();
+            document.getElementById('photoOverlay').classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePhotoModal() {
+            document.getElementById('photoOverlay').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        function renderPhotoModal() {
+            const state = getPhotoState();
+            const sub = document.getElementById('photoModalSub');
+            const content = document.getElementById('photoModalContent');
+            sub.innerText = ACCOUNT_EMOJIS[currentAccount] + ' ' + ACCOUNT_NAMES[currentAccount] + ' — semaine du ' + formatDateFr(currentWeekKey);
+
+            if (state === 'photo') {
+                content.innerHTML = `
+                    <img src="${photosDb[currentAccount][currentWeekKey]}" class="photo-view" alt="Stats Duolingo">
+                    <div class="data-tools-row" style="margin-top:12px;">
+                        <button class="btn-main btn-compare" style="margin-top:0;" onclick="document.getElementById('photoFile').click()">🔄 Remplacer</button>
+                        <button class="btn-main btn-compare" style="margin-top:0; color:var(--duo-red); border-color:rgba(255,75,75,.4);" onclick="deletePhoto()">🗑️ Supprimer</button>
+                    </div>`;
+            } else {
+                content.innerHTML = `
+                    <div class="photo-empty">Aucune photo pour cette semaine.</div>
+                    <button class="btn-main" onclick="document.getElementById('photoFile').click()">📷 Importer une photo</button>
+                    <label class="photo-none-check">
+                        <input type="checkbox" id="noPhotoCheck" ${state === 'none' ? 'checked' : ''} onchange="toggleNoPhoto(this.checked)">
+                        <span>Pas de photo reçue cette semaine</span>
+                    </label>`;
+            }
+        }
+
+        function handlePhotoFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                // Compression : max 900px de large, JPEG qualité 0.82 (localStorage limité)
+                const img = new Image();
+                img.onload = () => {
+                    const maxW = 900;
+                    const scale = Math.min(1, maxW / img.width);
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * scale);
+                    c.height = Math.round(img.height * scale);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    photosDb[currentAccount][currentWeekKey] = c.toDataURL('image/jpeg', 0.82);
+                    savePhotosDb();
+                    updatePhotoBtn();
+                    renderPhotoModal();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function toggleNoPhoto(checked) {
+            if (checked) photosDb[currentAccount][currentWeekKey] = 'none';
+            else delete photosDb[currentAccount][currentWeekKey];
+            savePhotosDb();
+            updatePhotoBtn();
+            renderPhotoModal();
+        }
+
+        function deletePhoto() {
+            if (!confirm('Supprimer cette photo ?')) return;
+            delete photosDb[currentAccount][currentWeekKey];
+            savePhotosDb();
+            updatePhotoBtn();
+            renderPhotoModal();
         }
 
         // --- LIGUE (lundi -> dimanche 22h) ---
@@ -1411,7 +1673,7 @@
         }
 
         // Fermer les modals avec Échap
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeStats(); closeLeague(); } });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeStats(); closeLeague(); closePhotoModal(); } });
 
         // Lancement initial
         updateView();
@@ -1520,5 +1782,5 @@ self.addEventListener('fetch', e => {
             if (wrap) wrap.innerHTML = '<div style="padding:12px;border-radius:12px;background:rgba(88,204,2,0.1);border:2px solid rgba(88,204,2,0.35);color:#58a700;font-weight:800;text-align:center;">✅ Weeklingo est installée sur ton appareil !</div>';
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1566d43c84f1310',t:'MTc4MzA4NzMzNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1566d43c84f1310',t:'MTc4MzA4NzMzNQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a1a2e7203d233ce7',t:'MTc4Mzg4OTI0NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
